@@ -1,0 +1,31 @@
+
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+    background-color: #f4f4f4;
+}
+.tunnel {
+    display: flex;
+    justify-content: center;
+}
+.segment {
+    width: 20px;
+    height: 30px;
+    border-radius: 50% 50% 0 0;
+    background-color: black; /* noir par défaut */
+    margin-right: 1px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 20px;
+    color: white;
+}
+.segment.red {
+    background-color: red;
+}   
+.segment.gray {
+    background-color: darkslategray;
+}

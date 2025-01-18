@@ -1,0 +1,14 @@
+{% extends "template.html" %}
+{% block content %}
+<div class="players">
+    <h3>Players</h3>
+    <ul class="list-group">
+        {% for player in players %}
+            <li class="list-group-item">{{ player }}</li>
+        {% endfor %}
+    </ul>
+</div>
+<form action="{{ url_for('themes') }}" method="post" class="mt-4">
+    <button type="submit" class="btn btn-primary">Start Game</button>
+</form>
+{% endblock %}

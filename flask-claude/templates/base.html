@@ -1,0 +1,312 @@
+# templates/base.html
+<!DOCTYPE html>
+<html lang="fr" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LE GRAND TUNNEG</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        dark: {
+                            100: '#1a1a1a',
+                            200: '#2d2d2d',
+                            300: '#404040',
+                            400: '#525252',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet">
+</head>
+<body class="bg-dark-100 text-gray-100" x-data="gameState()">
+    <div class="container mx-auto px-4 py-8">
+        <template x-if="state.game_state === 'main_menu'">
+            <div x-html="await renderMainMenu()"></div>
+        </template>
+        
+        <template x-if="state.game_state === 'box_selection'">
+            <div x-html="await renderBoxSelection()"></div>
+        </template>
+        
+        <template x-if="state.game_state === 'progress_bar'">
+            <div x-html="await renderProgressBar()"></div>
+        </template>
+    </div>
+
+    <script>
+        function gameState() {
+            return {
+                state: {
+                    game_state: 'main_menu',
+                    players: [],
+                    current_player_index: 0,
+                    selected_box: null,
+                    progress_bars: [],
+                    themes: []
+                },
+                
+                async init() {
+                    await this.refreshState();
+                },
+                
+                async refreshState() {
+                    const response = await fetch('/api/game_state');
+                    this.state = await response.json();
+                },
+                
+                async addPlayer(event) {
+                    event.preventDefault();
+                    const formData = new FormData(event.target);
+                    const response = await fetch('/api/add_player', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            player_name: formData.get('player_name')
+                        })
+                    });
+                    const result = await response.json();
+                    if (result.success) {
+                        event.target.reset();
+                        await this.refreshState();
+                    }
+                },
+
+                async removePlayer(event, player_name) {
+                    event.preventDefault();
+                    const formData = new FormData(event.target);
+                    const response = await fetch('/api/remove_player', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            player_name: player_name
+                        })
+                    });
+                    const result = await response.json();
+                    if (result.success) {
+                        event.target.reset();
+                        await this.refreshState();
+                    }
+                },
+                
+                async initGame() {
+                    const response = await fetch('/api/init_game', {
+                        method: 'POST'
+                    });
+                    const result = await response.json();
+                    if (result.success) {
+                        await this.refreshState();
+                    }
+                },
+                
+                async selectBox(boxIndex) {
+                    const response = await fetch('/api/select_box', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            box_index: boxIndex
+                        })
+                    });
+                    const result = await response.json();
+                    if (result.success) {
+                        await this.refreshState();
+                    }
+                },
+                
+                async updateProgress(action) {
+                    const response = await fetch('/api/update_progress', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ action })
+                    });
+                    const result = await response.json();
+                    if (result.success) {
+                        await this.refreshState();
+                    }
+                },
+                
+                async resetGame() {
+                    const response = await fetch('/api/reset_game', {
+                        method: 'POST'
+                    });
+                    const result = await response.json();
+                    if (result.success) {
+                        await this.refreshState();
+                    }
+                },
+                
+                async renderMainMenu() {
+                    return `
+                        <div class="max-w-2xl mx-auto">
+                            <h1 class="text-4xl font-bold mb-6 text-center">LE GRAND TUNNEG</h1>
+                            <h2 class="text-2xl mb-4">Menu principal</h2>
+
+                            <form @submit="addPlayer($event)" class="flex gap-4 mb-6">
+                                <input type="text" name="player_name" class="flex-grow p-2 border rounded bg-dark-200 border-dark-300 text-gray-100" placeholder="Nom du joueur">
+                                <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                                    Ajouter Joueur
+                                </button>
+                            </form>
+
+                            <template x-if="state.players.length > 0">
+                                <div class="mb-6">
+                                    <h2 class="text-2xl mb-2">Joueurs</h2>
+                                    <div class="space-y-2">
+                                        <template x-for="player in state.players" :key="player.name">
+                                            <div class="flex items-center justify-between p-3 bg-dark-200 rounded-lg shadow hover:shadow-md transition">
+                                                <span class="font-bold text-xl" x-text="player.name"></span>
+                                                <form @submit="removePlayer($event, player.name)" class="inline">
+                                                    <button type="submit" class="text-red-500 hover:text-white p-2 rounded-full hover:bg-red-500 transition">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                                            <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                                                        </svg>
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </div>
+                            </template>
+
+                            <template x-if="state.players.length >= 2">
+                                <button @click="initGame()" class="w-full bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+                                    Lancer la partie
+                                </button>
+                            </template>
+                            <template x-if="state.players.length < 2">
+                                <div class="bg-yellow-900 border-l-4 border-yellow-600 text-yellow-200 p-4">
+                                    Ajoutez au moins 2 joueurs pour lancer la partie
+                                </div>
+                            </template>
+                        </div>
+                    `;
+                },
+                
+                async renderBoxSelection() {
+                    const currentPlayer = this.state.players[this.state.current_player_index];
+                    return `
+                        <div class="max-w-4xl mx-auto">
+                            <h1 class="text-4xl font-bold mb-6 text-center">C'est le tour de : ${currentPlayer.name}</h1>
+
+                            <div class="mb-8">
+                                <h2 class="text-2xl mb-4">Points</h2>
+                                <div class="grid grid-cols-${this.state.players.length} gap-4">
+                                    ${this.state.players.map(player => `
+                                        <div class="text-center bg-dark-200 rounded-lg shadow hover:shadow-md transition">
+                                            <div class="font-bold text-xl">${player.name}</div>
+                                            <div class="text-2xl">${player.points}</div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-3 gap-6">
+                                ${this.state.themes.map((theme, i) => `
+                                    <div class="bg-dark-200 rounded-lg shadow p-4">
+                                        <button @click="selectBox(${i})" 
+                                           class="block rounded w-full text-center mb-4 text-lg font-semibold bg-blue-600 hover:bg-blue-700">
+                                            Thème ${theme}
+                                        </button>
+                                        <div class="text-center rounded-lg ${this.state.progress_bars[i].completed ? 'bg-dark-400 text-gray-300' : ''}">
+                                            <div class="flex items-center justify-center flex-wrap">
+                                                ${[...Array(10)].map((_, j) => `
+                                                    <div class="little-square ${
+                                                        this.state.progress_bars[i].validated_squares.includes(j + 1) ? 'grey' :
+                                                        j + 1 <= this.state.progress_bars[i].progress_value ? 'red' : 'empty'
+                                                    }">
+                                                    </div>
+                                                    ${[3,6,9].includes(j + 1) ? '<div class="little-separator"></div>' : ''}
+                                                `).join('')}
+                                            </div>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+
+                            <button @click="resetGame()" class="mt-8 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">
+                                Retour au menu
+                            </button>
+                        </div>
+                    `;
+                },
+                
+                async renderProgressBar() {
+                    const currentPlayer = this.state.players[this.state.current_player_index];
+                    const currentBar = this.state.progress_bars[this.state.selected_box];
+                    return `
+                        <div class="max-w-4xl mx-auto">
+                            <h1 class="text-4xl font-bold mb-6 text-center">
+                                C'est le tour de : ${currentPlayer.name} - Thème ${this.state.themes[this.state.selected_box]}
+                            </h1>
+
+                            <div class="mb-8">
+                                <h2 class="text-2xl mb-4">Points</h2>
+                                <div class="grid grid-cols-${this.state.players.length} gap-4">
+                                    ${this.state.players.map(player => `
+                                        <div class="text-center bg-dark-200 rounded-lg shadow hover:shadow-md transition">
+                                            <div class="font-bold text-xl">${player.name}</div>
+                                            <div class="text-2xl">${player.points}</div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+
+                            <div class="progress-container bg-dark-200 p-8 rounded-lg mb-8">
+                                <div class="flex items-center justify-center flex-wrap gap-2">
+                                    ${[...Array(10)].map((_, i) => `
+                                        <div class="square ${
+                                            currentBar.validated_squares.includes(i + 1) ? 'grey' :
+                                            i + 1 <= currentBar.progress_value ? 'red' : 'empty'
+                                        }">
+                                            ${i + 1}
+                                        </div>
+                                        ${[3,6,9].includes(i + 1) ? '<div class="separator"></div>' : ''}
+                                    `).join('')}
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-5 gap-4">
+                                <button @click="updateProgress('next')" 
+                                        class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                                    Question suivante
+                                </button>
+                                <button @click="updateProgress('lock')"
+                                        class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+                                    Coffrer
+                                </button>
+                                <button @click="updateProgress('pass')"
+                                        class="bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700">
+                                    Passer
+                                </button>
+                                <button @click="updateProgress('remove')"
+                                        class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">
+                                    Retirer
+                                </button>
+                                <button @click="updateProgress('back')"
+                                        class="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">
+                                    Retour aux thèmes
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+        }
+    </script>
+</body>
+</html>

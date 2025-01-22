@@ -1,0 +1,55 @@
+# templates/box_selection.html
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <h1 class="text-4xl font-bold mb-6 text-center">C'est le tour de : {{ current_player.name }}</h1>
+
+    <div class="mb-8">
+        <h2 class="text-2xl mb-4">Points</h2>
+        <div class="grid grid-cols-{{ players|length }} gap-4">
+            {% for player in players %}
+            <div class="text-center">
+                <div class="font-bold">{{ player.name }}</div>
+                <div class="text-2xl">{{ player.points }}</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="grid grid-cols-3 gap-6">
+        {% for theme in themes %}
+        {% set i = loop.index0 %}
+        <div class="bg-white rounded-lg shadow p-4">
+            <a href="{{ url_for('select_box', box_index=i) }}" 
+               class="block text-center mb-4 text-lg font-semibold hover:text-blue-600">
+                Thème {{ theme }}
+            </a>
+            <div class="text-center {% if progress_bars[i].completed %}bg-gray-600 text-white{% endif %}">
+                <p>Progression: {{ progress_bars[i].progress_value }}/10</p>
+                <p>Coffrés: {{ progress_bars[i].validated_squares|length }}</p>
+                {% set points_to_steal = namespace(value=0) %}
+                {% for j in range(progress_bars[i].validated_squares|length + 1, progress_bars[i].progress_value + 1) %}
+                    {% if j <= 3 %}
+                        {% set points_to_steal.value = points_to_steal.value + 1 %}
+                    {% elif j <= 6 %}
+                        {% set points_to_steal.value = points_to_steal.value + 2 %}
+                    {% elif j <= 9 %}
+                        {% set points_to_steal.value = points_to_steal.value + 3 %}
+                    {% else %}
+                        {% set points_to_steal.value = points_to_steal.value + 5 %}
+                    {% endif %}
+                {% endfor %}
+                <p>Points à voler: {{ points_to_steal.value }}</p>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <form action="{{ url_for('reset_game') }}" method="post" class="mt-8">
+        <button type="submit" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
+            Retour au menu
+        </button>
+    </form>
+</div>
+{% endblock %}

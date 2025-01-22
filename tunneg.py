@@ -271,6 +271,6 @@ elif st.session_state.game_state == 'progress_bar':
             st.rerun()
 
     with col5:
-        if st.button('Retour au tèmes', use_container_width=True):
+        if st.button('Retour aux thèmes', use_container_width=True):
             return_to_boxes()
             

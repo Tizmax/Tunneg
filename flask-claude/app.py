@@ -7,10 +7,6 @@ app = Flask(__name__)
 app.secret_key = 'your-secret-key-here'
 app.permanent_session_lifetime = timedelta(days=1)
 
-THEMES = ["1", "2", "3", 
-          "4", "5", "6",
-          "7", "8", "9"]
-
 def init_session():
     if 'game_state' not in session:
         session['game_state'] = 'main_menu'
@@ -20,12 +16,49 @@ def init_session():
         session['current_player_index'] = 0
     if 'selected_box' not in session:
         session['selected_box'] = None
+    if 'themes' not in session:
+        session['themes'] = []
     if 'progress_bars' not in session:
         session['progress_bars'] = [{
             'progress_value': 0,
             'validated_squares': [],
             'completed': False
-        } for _ in range(len(THEMES))]
+        } for _ in range(len(session['themes']))]
+
+@app.route('/api/add_theme', methods=['POST'])
+def add_theme():
+    data = request.get_json()
+    theme = data.get('theme')
+    if theme and theme not in session['themes']:
+        themes = session['themes']
+        themes.append(theme)
+        session['themes'] = themes
+        
+        return jsonify({
+            'success': True, 
+            'themes': session['themes']
+        })
+    return jsonify({'success': False, 'message': 'Invalid theme'})
+
+@app.route('/api/remove_theme', methods=['POST'])
+def remove_theme():
+    data = request.get_json()
+    theme = data.get('theme')
+    if theme in session['themes']:
+        themes = session['themes']
+        themes.remove(theme)
+        session['themes'] = themes
+
+        return jsonify({
+            'success': True, 
+            'themes': session['themes']
+        })
+    return jsonify({'success': False, 'message': 'Theme not found'})
+
+@app.route('/api/start_theme_input', methods=['POST'])
+def start_theme_input():
+    session['game_state'] = 'theme_input'
+    return jsonify({'success': True, 'game_state': 'theme_input'})
 
 def get_level_points(square_number):
     if square_number <= 3:
@@ -43,7 +76,7 @@ def index():
     return render_template('index.html', 
                          game_state=session['game_state'],
                          players=session['players'],
-                         themes=THEMES)
+                         themes=session['themes'])
 
 @app.route('/api/game_state')
 def get_game_state():
@@ -53,7 +86,7 @@ def get_game_state():
         'current_player_index': session['current_player_index'],
         'selected_box': session['selected_box'],
         'progress_bars': session['progress_bars'],
-        'themes': THEMES
+        'themes': session['themes']
     })
 
 @app.route('/api/add_player', methods=['POST'])
@@ -85,6 +118,12 @@ def remove_player():
 
 @app.route('/api/init_game', methods=['POST'])
 def init_game():
+    if not session or session['progress_bars'] == []:
+        session['progress_bars'] = [{
+        'progress_value': 0,
+        'validated_squares': [],
+        'completed': False
+        } for _ in range(len(session['themes']))]
     session['current_player_index'] = random.randint(0, len(session['players']) - 1)
     session['game_state'] = 'box_selection'
     return jsonify({'success': True, 'game_state': session['game_state']})
@@ -141,7 +180,6 @@ def update_progress():
 
 @app.route('/api/reset_game', methods=['POST'])
 def reset_game():
-    session['game_state'] = 'main_menu'
     session['players'] = [{
         'name': player['name'],
         'points': 0
@@ -150,7 +188,12 @@ def reset_game():
         'progress_value': 0,
         'validated_squares': [],
         'completed': False
-    } for _ in range(len(THEMES))]
+    } for _ in range(len(session['themes']))]
+    return jsonify({'success': True})
+
+@app.route('/api/go_main_menu', methods=['POST'])
+def go_main_menu():
+    session['game_state'] = 'main_menu'
     return jsonify({'success': True, 'game_state': session['game_state']})
 
 if __name__ == '__main__':

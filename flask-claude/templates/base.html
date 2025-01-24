@@ -32,6 +32,10 @@
             <div x-html="await renderMainMenu()"></div>
         </template>
         
+        <template x-if="state.game_state === 'theme_input'">
+            <div x-html="await renderThemeInput()"></div>
+        </template>
+        
         <template x-if="state.game_state === 'box_selection'">
             <div x-html="await renderBoxSelection()"></div>
         </template>
@@ -44,6 +48,10 @@
     <script>
         function gameState() {
             return {
+                timer: null,
+                timeRemaining: 60,
+                isTimerRunning: false,
+
                 state: {
                     game_state: 'main_menu',
                     players: [],
@@ -52,7 +60,104 @@
                     progress_bars: [],
                     themes: []
                 },
+
+                stopTimer() {
+                    if (this.timer) {
+                        clearInterval(this.timer);
+                        this.timer = null;
+                        this.isTimerRunning = false;
+                    }
+                },
+
+                startTimer() {
+                    this.isTimerRunning = true;
+                    this.timeRemaining = 60;
+                    
+                    this.timer = setInterval(() => {
+                        this.timeRemaining--;
+                        
+                        if (this.timeRemaining <= 0) {
+                            this.stopTimer();
+                            this.updateProgress('pass');
+                        }
+                    }, 1000);
+                },
+
+                clickTimer() {
+                    if (this.isTimerRunning) {
+                        this.stopTimer();
+                    } else {
+                        this.startTimer();
+                    }
+                },
+
+                getTimerTextClass() {
+                    if (this.timeRemaining <= 10) {
+                        return 'text-9xl text-red-600 font-extrabold relative';
+                    } else if (this.timeRemaining <= 20) {
+                        return 'text-8xl text-orange-500 font-bold';
+                    } else if (this.timeRemaining <= 30) {
+                        return 'text-7xl text-yellow-500';
+                    }
+                    return 'text-6xl';
+                },
                 
+                async goMainMenu() {
+                    const response = await fetch('/api/go_main_menu', {
+                        method: 'POST'
+                    });
+                    const result = await response.json();
+                    if (result.success) {
+                        await this.refreshState();
+                    }
+                },
+
+                async startThemeInput() {
+                    const response = await fetch('/api/start_theme_input', {
+                        method: 'POST'
+                    });
+                    const result = await response.json();
+                    if (result.success) {
+                        await this.refreshState();
+                    }
+                },
+
+                async addTheme(event) {
+                    event.preventDefault();
+                    const formData = new FormData(event.target);
+                    const response = await fetch('/api/add_theme', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            theme: formData.get('theme')
+                        })
+                    });
+                    const result = await response.json();
+                    if (result.success) {
+                        event.target.reset();
+                        await this.refreshState();
+                    }
+                },
+
+                async removeTheme(event, theme) {
+                    event.preventDefault();
+                    const response = await fetch('/api/remove_theme', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            theme: theme
+                        })
+                    });
+                    const result = await response.json();
+                    if (result.success) {
+                        await this.refreshState();
+                    }
+                },
+
                 async init() {
                     await this.refreshState();
                 },
@@ -127,6 +232,7 @@
                 },
                 
                 async updateProgress(action) {
+                    this.stopTimer();
                     const response = await fetch('/api/update_progress', {
                         method: 'POST',
                         headers: {
@@ -150,11 +256,12 @@
                     }
                 },
                 
+                
                 async renderMainMenu() {
                     return `
                         <div class="max-w-2xl mx-auto">
                             <h1 class="text-4xl font-bold mb-6 text-center">LE GRAND TUNNEG</h1>
-                            <h2 class="text-2xl mb-4">Menu principal</h2>
+                            <h2 class="text-2xl mb-4">Saisie des joueurs</h2>
 
                             <form @submit="addPlayer($event)" class="flex gap-4 mb-6">
                                 <input type="text" name="player_name" class="flex-grow p-2 border rounded bg-dark-200 border-dark-300 text-gray-100" placeholder="Nom du joueur">
@@ -184,8 +291,8 @@
                             </template>
 
                             <template x-if="state.players.length >= 2">
-                                <button @click="initGame()" class="w-full bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
-                                    Lancer la partie
+                                <button @click="startThemeInput()" class="w-full bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+                                    Entrer les thèmes
                                 </button>
                             </template>
                             <template x-if="state.players.length < 2">
@@ -193,6 +300,65 @@
                                     Ajoutez au moins 2 joueurs pour lancer la partie
                                 </div>
                             </template>
+                        </div>
+                    `;
+                },
+
+                // Add new renderThemeInput method
+                async renderThemeInput() {
+                    return `
+                        <div class="max-w-2xl mx-auto">
+                            <h1 class="text-4xl font-bold mb-6 text-center">LE GRAND TUNNEG</h1>
+                            <h2 class="text-2xl mb-4">Saisie des thèmes</h2>
+
+                            <form @submit="addTheme($event)" class="flex gap-4 mb-6">
+                                <input type="password" name="theme" 
+                                    class="flex-grow p-2 border rounded bg-dark-200 border-dark-300 text-gray-100" 
+                                    placeholder="Entrez un thème" 
+                                    maxlength="30">
+                                <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                                    Ajouter Thème
+                                </button>
+                            </form>
+
+                            <template x-if="state.themes.length > 0">
+                                <div class="mb-6">
+                                    <h2 class="text-2xl mb-2">Thèmes saisis</h2>
+                                    <div class="space-y-2">
+                                        <template x-for="theme in state.themes" :key="theme">
+                                            <div class="flex items-center justify-between p-3 bg-dark-200 rounded-lg shadow hover:shadow-md transition">
+                                                        <span class="font-bold text-xl">
+                                                            <template x-for="n in theme.length" :key="n">
+                                                                <span>●</span>
+                                                            </template>
+                                                        </span>
+                                                <form @submit="removeTheme($event, theme)" class="inline">
+                                                    <button type="submit" class="text-red-500 hover:text-white p-2 rounded-full hover:bg-red-500 transition">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                                            <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                                                        </svg>
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </div>
+                            </template>
+
+                            <template x-if="state.themes.length >= 1">
+                                <button @click="initGame()" class="w-full bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+                                    Lancer la partie
+                                </button>
+                            </template>
+                            <template x-if="state.themes.length < 1">
+                                <div class="bg-yellow-900 border-l-4 border-yellow-600 text-yellow-200 p-4">
+                                    Ajoutez au moins 1 thème pour lancer la partie
+                                </div>
+                            </template>
+
+                            <button @click="goMainMenu()" class="mt-8 bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700">
+                                    Retour aux joueurs
+                            </button>
                         </div>
                     `;
                 },
@@ -238,9 +404,15 @@
                                 `).join('')}
                             </div>
 
-                            <button @click="resetGame()" class="mt-8 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">
+                            <button @click="goMainMenu()" class="mt-8 bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700">
                                 Retour au menu
                             </button>
+
+                            <button @click="resetGame()" class="mt-8 bg-red-600 text-white px-5 py-2 rounded hover:bg-red-700">
+                                Réinitialisation de la partie
+                            </button>
+
+
                         </div>
                     `;
                 },
@@ -280,7 +452,7 @@
                                 </div>
                             </div>
 
-                            <div class="grid grid-cols-5 gap-4">
+                            <div class="grid grid-cols-5 gap-4 mb-6">
                                 <button @click="updateProgress('next')" 
                                         class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
                                     Question suivante
@@ -302,6 +474,25 @@
                                     Retour aux thèmes
                                 </button>
                             </div>
+
+                            <div class="mb-4 flex items-center justify-center">
+                                <button @click="clickTimer()" 
+                                    class="bg-yellow-600 text-white px-4 py-2 rounded-full flex items-center justify-center w-16 h-16 hover:bg-yellow-700">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                </button>
+                            </div>
+
+                            <template x-if="isTimerRunning">
+                                <div class="ml-4 text-2xl font-bold flex items-center justify-center" :class="getTimerTextClass()" px-5 py-2>
+                                    <span x-text="timeRemaining"></span>s
+                                    ${this.timeRemaining <= 10 ? `
+                                    <span class="absolute h-20 w-20 rounded-full bg-red-700 opacity-75 animate-ping"></span>` : ''}
+
+                                </div>
+
+                            </template>
                         </div>
                     `;
                 }

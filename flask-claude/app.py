@@ -159,6 +159,7 @@ def update_progress():
         if len(current_bar['validated_squares']) == 10:
             current_bar['completed'] = True
         session['current_player_index'] = (session['current_player_index'] + 1) % len(session['players'])
+        session['game_state'] = 'box_selection'
     elif action == 'pass':
         session['current_player_index'] = (session['current_player_index'] + 1) % len(session['players'])
     elif action == 'remove':

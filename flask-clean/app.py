@@ -125,6 +125,7 @@ def select_theme():
     data = request.get_json()
     theme_index = data.get('theme_index')
     session['selected_theme'] = theme_index
+    session['progress_bars'][theme_index]['discovered'] = True 
     session['game_state'] = 'progress_bar'
     return jsonify({'success': True, 'game_state': session['game_state']})
 
@@ -136,10 +137,24 @@ def update_progress():
     selected_theme = session['selected_theme']
     current_bar = progress_bars[selected_theme]
     
-    if action == 'next':
-        if current_bar['progress_value'] < 10:
+    if action == 'bonne_reponse':
+        current_bar['discovered'] = False
+
+        if current_bar['progress_value'] == 9:
             current_bar['progress_value'] += 1
-    elif action == 'lock':
+            current_bar['validated_squares'] = 10
+            current_bar['completed'] = True
+            session['current_player_index'] = (session['current_player_index'] + 1) % len(session['players'])
+            session['game_state'] = 'theme_selection'
+        elif current_bar['progress_value'] < 10:
+            current_bar['progress_value'] += 1
+
+    elif action == 'mauvaise_reponse':
+        session['current_player_index'] = (session['current_player_index'] + 1) % len(session['players'])
+        session['game_state'] = 'theme_selection'
+    elif action == "continuer":
+        current_bar['discovered'] = True
+    elif action == 'coffrer':
         points_gained = 0
         for i in range(1, current_bar['progress_value'] + 1):
             if i not in range(1, current_bar['validated_squares'] + 1):
@@ -148,18 +163,6 @@ def update_progress():
         players = session['players']
         players[session['current_player_index']]['points'] += points_gained
         session['players'] = players
-        if current_bar['validated_squares'] == 10:
-            current_bar['completed'] = True
-        session['current_player_index'] = (session['current_player_index'] + 1) % len(session['players'])
-        session['game_state'] = 'theme_selection'
-    elif action == 'pass':
-        session['current_player_index'] = (session['current_player_index'] + 1) % len(session['players'])
-    elif action == 'remove':
-        if current_bar['progress_value'] > 0:
-            if current_bar['progress_value'] <= current_bar['validated_squares']:
-                current_bar['validated_squares'] -= 1
-            current_bar['progress_value'] -= 1
-    elif action == 'back':
         session['current_player_index'] = (session['current_player_index'] + 1) % len(session['players'])
         session['game_state'] = 'theme_selection'
     

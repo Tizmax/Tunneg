@@ -59,8 +59,14 @@ body {
     border-radius: 2px;
 }
 
-.red {
-    background-color: #dc2626;
+/* Style des blocs de la progressbar */
+.yellow {
+    background-color: #ca8a04;
+    color: white;
+}
+
+.green {
+    background-color: #16a34a;
     color: white;
 }
 

@@ -51,6 +51,8 @@
                 timeRemaining: 60,
                 isTimerRunning: false,
 
+                demanderContinuer: false,
+
                 state: {
                     game_state: 'main_menu',
                     players: [],
@@ -230,6 +232,15 @@
                 },
                 
                 async updateProgress(action) {
+
+                    if(action === 'bonne_reponse'){
+                        this.demanderContinuer = true;
+                    } else {
+                        this.demanderContinuer = false;
+                    }
+
+
+
                     this.stopTimer();
                     const response = await fetch('/api/update_progress', {
                         method: 'POST',
@@ -391,7 +402,8 @@
                                                 ${[...Array(10)].map((_, j) => `
                                                     <div class="little-square ${
                                                         j + 1 <= this.state.progress_bars[i].validated_squares ? 'grey' :
-                                                        j + 1 <= this.state.progress_bars[i].progress_value ? 'red' : 'empty'
+                                                        j + 1 <= this.state.progress_bars[i].progress_value ? 'green' : 
+                                                        j == this.state.progress_bars[i].progress_value && this.state.progress_bars[i].discovered ? 'yellow' : 'empty'
                                                     }">
                                                     </div>
                                                     ${[3,6,9].includes(j + 1) ? '<div class="little-separator"></div>' : ''}
@@ -441,7 +453,8 @@
                                     ${[...Array(10)].map((_, i) => `
                                         <div class="square ${
                                             i + 1 <= currentBar.validated_squares ? 'grey' :
-                                            i + 1 <= currentBar.progress_value ? 'red' : 'empty'
+                                            i + 1 <= currentBar.progress_value ? 'green' : 
+                                            i == currentBar.progress_value && currentBar.discovered ? 'yellow' : 'empty'
                                         }">
                                             ${i + 1}
                                         </div>
@@ -450,32 +463,36 @@
                                 </div>
                             </div>
 
-                            <div class="grid grid-cols-5 gap-4 mb-6">
-                                <button @click="updateProgress('next')" 
-                                        class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-                                    Question suivante
-                                </button>
-                                <button @click="updateProgress('lock')"
-                                        class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
-                                    Coffrer
-                                </button>
-                                <button @click="updateProgress('pass')"
-                                        class="bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700">
-                                    Passer
-                                </button>
-                                <button @click="updateProgress('remove')"
-                                        class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">
-                                    Retirer
-                                </button>
-                                <button @click="updateProgress('back')"
-                                        class="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">
-                                    Retour aux thèmes
-                                </button>
-                            </div>
+                            <template x-if="!demanderContinuer">
+                                <div class="grid grid-cols-2 gap-4 mb-6">
+                                    <button @click="updateProgress('bonne_reponse');" 
+                                            class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+                                        Bonne réponse
+                                    </button>
+                                    <button @click="updateProgress('mauvaise_reponse');"
+                                            class="bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700">
+                                        Mauvais réponse
+                                    </button>
+                                </div>
+                            </template>
+
+                            <template x-if="demanderContinuer">
+                                <div class="grid grid-cols-2 gap-4 mb-6">
+                                    <button @click="updateProgress('continuer');" 
+                                            class="bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700">
+                                        Continuer
+                                    </button>
+                                    <button @click="updateProgress('coffrer');"
+                                            class="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">
+                                        Coffrer
+                                    </button>
+                                </div>
+                            </template>
+
 
                             <div class="mb-4 flex items-center justify-center">
                                 <button @click="clickTimer()" 
-                                    class="bg-yellow-600 text-white px-4 py-2 rounded-full flex items-center justify-center w-16 h-16 hover:bg-yellow-700">
+                                    class="bg-red-600 text-white px-4 py-2 rounded-full flex items-center justify-center w-16 h-16 hover:bg-red-700">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                                     </svg>
@@ -487,9 +504,7 @@
                                     <span x-text="timeRemaining"></span>s
                                     ${this.timeRemaining <= 10 ? `
                                     <span class="absolute h-20 w-20 rounded-full bg-red-700 opacity-75 animate-ping"></span>` : ''}
-
                                 </div>
-
                             </template>
                         </div>
                     `;

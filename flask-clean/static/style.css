@@ -1,0 +1,136 @@
+/* static/style.css */
+:root {
+    --dark-bg: #1a1a1a;
+    --dark-surface: #2d2d2d;
+    --dark-border: #404040;
+    --dark-hover: #525252;
+}
+
+body {
+    background-color: var(--dark-bg);
+    color: #e5e5e5;
+}
+
+.progress-container {
+    padding: 30px;
+    background-color: var(--dark-surface);
+    border-radius: 15px;
+    margin: 20px 0;
+}
+
+.little-square {
+    width: 15px;
+    height: 15px;
+    border: 1px solid var(--dark-border);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin: 3px;
+    font-weight: bold;
+    border-radius: 1px;
+    transition: all 0.3s ease;
+}
+
+.square {
+    width: 50px;
+    height: 50px;
+    border: 2px solid var(--dark-border);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin: 3px;
+    font-weight: bold;
+    border-radius: 5px;
+    font-size: 20px;
+    transition: all 0.3s ease;
+}
+
+.little-separator {
+    margin: 0 3px;
+    display: inline-block;
+}
+
+.separator {
+    width: 4px;
+    height: 25px;
+    background: linear-gradient(to bottom, var(--dark-border), var(--dark-hover));
+    margin: 0 10px;
+    display: inline-block;
+    border-radius: 2px;
+}
+
+.red {
+    background-color: #dc2626;
+    color: white;
+}
+
+.grey {
+    background-color: var(--dark-hover);
+    color: white;
+}
+
+.empty {
+    background-color: var(--dark-bg);
+    color: #e5e5e5;
+    border-color: var(--dark-border);
+}
+
+/* Button styling */
+button {
+    transition: all 0.2s ease;
+}
+
+button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+/* Form styling */
+input[type="text"] {
+    background-color: var(--dark-surface);
+    border: 2px solid var(--dark-border);
+    color: #e5e5e5;
+    transition: all 0.3s ease;
+}
+
+input[type="text"]:focus {
+    border-color: #60a5fa;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.2);
+}
+
+input[type="text"]::placeholder {
+    color: #9ca3af;
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+    .square {
+        width: 40px;
+        height: 40px;
+        font-size: 16px;
+    }
+
+    .separator {
+        width: 3px;
+        height: 20px;
+        margin: 0 8px;
+    }
+
+    .progress-container {
+        padding: 15px;
+    }
+}
+
+@media (max-width: 480px) {
+    .square {
+        width: 35px;
+        height: 35px;
+        font-size: 14px;
+    }
+
+    .grid-cols-5 {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+}

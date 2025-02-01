@@ -104,7 +104,8 @@ def init_game():
         'progress_value': 0,
         'validated_squares': 0,
         'discovered' : False,
-        'completed': False
+        'completed': False,
+        'nullified' : []
         } for _ in range(len(session['themes']))]
     session['current_player_index'] = random.randint(0, len(session['players']) - 1)
     session['game_state'] = 'theme_selection'
@@ -129,6 +130,19 @@ def select_theme():
     session['game_state'] = 'progress_bar'
     return jsonify({'success': True, 'game_state': session['game_state']})
 
+def coffrer(current_bar):
+    points_gained = 0
+    for i in range(1, current_bar['progress_value'] + 1):
+        if i not in range(1, current_bar['validated_squares'] + 1): 
+            current_bar['validated_squares'] += 1
+            if i not in current_bar['nullified']:
+                points_gained += get_question_points(i)
+    players = session['players']
+    players[session['current_player_index']]['points'] += points_gained
+    session['players'] = players
+    session['current_player_index'] = (session['current_player_index'] + 1) % len(session['players'])
+    session['game_state'] = 'theme_selection'
+
 @app.route('/api/update_progress', methods=['POST'])
 def update_progress():
     data = request.get_json()
@@ -142,30 +156,31 @@ def update_progress():
 
         if current_bar['progress_value'] == 9:
             current_bar['progress_value'] += 1
-            current_bar['validated_squares'] = 10
+            coffrer(current_bar)
             current_bar['completed'] = True
-            session['current_player_index'] = (session['current_player_index'] + 1) % len(session['players'])
-            session['game_state'] = 'theme_selection'
+
         elif current_bar['progress_value'] < 10:
             current_bar['progress_value'] += 1
 
     elif action == 'mauvaise_reponse':
         session['current_player_index'] = (session['current_player_index'] + 1) % len(session['players'])
         session['game_state'] = 'theme_selection'
+    elif action == "passer":
+        current_bar['nullified'].append(current_bar['progress_value']+1)
+
+        if current_bar['progress_value'] == 9:
+            current_bar['progress_value'] += 1
+            coffrer(current_bar)
+            current_bar['completed'] = True
+
+        elif current_bar['progress_value'] < 10:
+            current_bar['progress_value'] += 1
+
     elif action == "continuer":
         current_bar['discovered'] = True
-    elif action == 'coffrer':
-        points_gained = 0
-        for i in range(1, current_bar['progress_value'] + 1):
-            if i not in range(1, current_bar['validated_squares'] + 1):
-                points_gained += get_question_points(i)
-                current_bar['validated_squares'] += 1
-        players = session['players']
-        players[session['current_player_index']]['points'] += points_gained
-        session['players'] = players
-        session['current_player_index'] = (session['current_player_index'] + 1) % len(session['players'])
-        session['game_state'] = 'theme_selection'
-    
+    if action == 'coffrer':
+        coffrer(current_bar)
+
     session['progress_bars'] = progress_bars
     return jsonify({
         'success': True,
@@ -184,7 +199,8 @@ def reset_game():
         'progress_value': 0,
         'validated_squares': 0,
         'discovered' : False,
-        'completed': False
+        'completed': False,
+        'nullified' : []
         } for _ in range(len(session['themes']))]
     return jsonify({'success': True})
 

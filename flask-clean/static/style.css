@@ -75,6 +75,11 @@ body {
     color: white;
 }
 
+.black {
+    background-color: #000000;
+    color: white;
+}
+
 .empty {
     background-color: var(--dark-bg);
     color: #e5e5e5;

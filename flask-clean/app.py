@@ -143,6 +143,15 @@ def coffrer(current_bar):
     session['current_player_index'] = (session['current_player_index'] + 1) % len(session['players'])
     session['game_state'] = 'theme_selection'
 
+def poursuivre(current_bar):
+    if current_bar['progress_value'] == 9:
+        current_bar['progress_value'] += 1
+        coffrer(current_bar)
+        current_bar['completed'] = True
+
+    elif current_bar['progress_value'] < 10:
+        current_bar['progress_value'] += 1
+
 @app.route('/api/update_progress', methods=['POST'])
 def update_progress():
     data = request.get_json()
@@ -153,28 +162,14 @@ def update_progress():
     
     if action == 'bonne_reponse':
         current_bar['discovered'] = False
-
-        if current_bar['progress_value'] == 9:
-            current_bar['progress_value'] += 1
-            coffrer(current_bar)
-            current_bar['completed'] = True
-
-        elif current_bar['progress_value'] < 10:
-            current_bar['progress_value'] += 1
+        poursuivre(current_bar)
 
     elif action == 'mauvaise_reponse':
         session['current_player_index'] = (session['current_player_index'] + 1) % len(session['players'])
         session['game_state'] = 'theme_selection'
     elif action == "passer":
         current_bar['nullified'].append(current_bar['progress_value']+1)
-
-        if current_bar['progress_value'] == 9:
-            current_bar['progress_value'] += 1
-            coffrer(current_bar)
-            current_bar['completed'] = True
-
-        elif current_bar['progress_value'] < 10:
-            current_bar['progress_value'] += 1
+        poursuivre(current_bar)
 
     elif action == "continuer":
         current_bar['discovered'] = True
@@ -210,4 +205,4 @@ def go_main_menu():
     return jsonify({'success': True, 'game_state': session['game_state']})
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='192.168.82.176', port=5000, debug=True)
